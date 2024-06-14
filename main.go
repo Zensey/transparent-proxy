@@ -3,7 +3,9 @@ package main
 import (
 	"io"
 	"log"
+	"maps"
 	"net"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -13,7 +15,19 @@ import (
 	"github.com/zensey/transparent-proxy/util"
 )
 
+type trackerRec struct {
+	rx int64
+	tx int64
+	sn string
+}
+
+var (
+	mu sync.Mutex
+	T  map[string]trackerRec
+)
+
 func main() {
+	T = make(map[string]trackerRec, 0)
 
 	log.Println("Binding TCP TProxy listener to 0.0.0.0:8585")
 	listener, err := tproxy.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 8585})
@@ -66,16 +80,25 @@ func handleTcpConn(conn net.Conn) {
 	var streamWait sync.WaitGroup
 	streamWait.Add(2)
 
+	dst := conn.LocalAddr().String()
+	ip, _ := getIPPort(dst)
+
 	streamConn := func(dst io.WriteCloser, src io.Reader, dir int) {
 		// defer src.Close()
 		defer dst.Close()
 
 		sn := sniffer{}
 		if dir == 1 {
-			src = sn.capture(src)
+			src = sn.capture(src, ip)
 		}
-		io.Copy(dst, src)
+		written, _ := io.Copy(dst, src)
 		sn.close()
+
+		if dir == 1 {
+			incTx(ip, written)
+		} else {
+			incRx(ip, written)
+		}
 
 		streamWait.Done()
 	}
@@ -85,7 +108,56 @@ func handleTcpConn(conn net.Conn) {
 
 	streamWait.Wait()
 	log.Printf("Finish: %s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
+
+
+	mu.Lock()
+	T_ := maps.Clone(T)
+	mu.Unlock()
+	for k, v := range T_ {
+		log.Printf("> %v %v", k, v)
+	}
 }
+
+func incTx(ip string, count int64) {
+	mu.Lock()
+	defer mu.Unlock()
+	r, ok := T[ip]
+	if !ok {
+		r = trackerRec{}
+	}
+	r.tx += count
+	T[ip] = r
+}
+
+func incRx(ip string, count int64) {
+	mu.Lock()
+	defer mu.Unlock()
+	r, ok := T[ip]
+	if !ok {
+		r = trackerRec{}
+	}
+	r.rx += count
+	T[ip] = r
+}
+
+func setSN(ip string, sn string) {
+	mu.Lock()
+	defer mu.Unlock()
+	r, ok := T[ip]
+	if !ok {
+		r = trackerRec{}
+	}
+	r.sn = sn
+	T[ip] = r
+}
+
+func getIPPort(adr string) (ip, port string) {
+	a := strings.Split(adr, ":")
+
+	return a[0], a[1]
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 type sniffer struct {
 	pw *io.PipeWriter
@@ -97,7 +169,7 @@ func (p *sniffer) close() {
 	}
 }
 
-func (p *sniffer) capture(src io.Reader) io.Reader {
+func (p *sniffer) capture(src io.Reader, ip string) io.Reader {
 	pr, pw := io.Pipe()
 	p.pw = pw
 	srcCopy := io.TeeReader(src, pw)
@@ -129,7 +201,8 @@ func (p *sniffer) capture(src io.Reader) io.Reader {
 		for _, ext := range clientHello.Extensions {
 			if ext.Type() == dissector.ExtServerName {
 				snExtension := ext.(*dissector.ServerNameExtension)
-				log.Println("sn>", snExtension)
+
+				setSN(ip, snExtension.Name)
 				break
 			}
 		}
