@@ -46,7 +46,7 @@ func (p *sniffer) capture(src io.Reader, sn *string) io.Reader {
 			return
 		}
 
-		log.Println("clientHello >")
+		// log.Println("clientHello >")
 		for _, ext := range clientHello.Extensions {
 			if ext.Type() == dissector.ExtServerName {
 				snExtension := ext.(*dissector.ServerNameExtension)

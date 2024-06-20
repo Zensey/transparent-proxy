@@ -23,7 +23,7 @@ func HandleAccept(listener net.Listener, T *logic.TrafficCounter) {
 }
 
 func handle(conn net.Conn, T *logic.TrafficCounter) {
-	log.Printf("%s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
+	log.Printf("[tcp] Handle: %s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
 	defer conn.Close()
 
 	dialer := &net.Dialer{
@@ -76,12 +76,6 @@ func handle(conn net.Conn, T *logic.TrafficCounter) {
 	go streamConn(conn, remoteConn, 0, &rx)
 	streamWait.Wait()
 
-	log.Printf("Finish: %s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
+	log.Printf("[tcp] Finish: %s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
 	T.CollectStats(ip, serverName, rx, tx)
-
-	T_ := T.GetTable()
-	for k, v := range T_ {
-		_, _ = k, v
-		log.Printf("> %v %v", k, v)
-	}
 }

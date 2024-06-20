@@ -12,7 +12,6 @@ import (
 
 	"github.com/quic-go/quic-go"
 	"github.com/zensey/transparent-proxy/logic"
-	// "github.com/zensey/transparent-proxy/quic"
 )
 
 const (
@@ -47,11 +46,11 @@ func extractSN(data []byte) string {
 		log.Println("ReadFrom err:", err)
 		return ""
 	}
-	log.Println("clientHello >")
+	// log.Println("clientHello >")
 	for _, ext := range clientHello.Extensions {
 		if ext.Type() == dissector.ExtServerName {
 			snExtension := ext.(*dissector.ServerNameExtension)
-			log.Println("SN >", snExtension.Name)
+			// log.Println("SN >", snExtension.Name)
 			return snExtension.Name
 		}
 	}
@@ -65,18 +64,14 @@ func extractSN(data []byte) string {
 // and wait a few seconds for any possible
 // response data
 func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, T *logic.TrafficCounter) {
+	log.Printf("[udp] Handle: %s -> %s", srcAddr, dstAddr)
 
-	// T.IncRx(dstAddr.IP.String(), int64(len(data)))
 	tx0 := int64(len(data))
-
 	var sn string
 	crypto := quic.ExractCryptoFrame(data)
 	if crypto != nil {
 		sn = extractSN(crypto)
 	}
-	_ = sn
-
-	log.Printf("Accepting UDP connection from %s with destination of %s", srcAddr, dstAddr)
 
 	// to local
 	localConn, err := tproxy.DialUDP("udp", dstAddr, srcAddr)
@@ -87,7 +82,6 @@ func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, T *logic.TrafficCounter)
 	defer localConn.Close()
 
 	// call to remote
-	// remoteConn, err := tproxy.DialUDP("udp", srcAddr, dstAddr)
 	dialer := &net.Dialer{
 		Control: func(network, address string, conn syscall.RawConn) error {
 			var operr error
@@ -114,19 +108,11 @@ func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, T *logic.TrafficCounter)
 		ttl:  time.Second * 2,
 	}
 
-	log.Println("Copy > src<->dst ")
+	// log.Println("Copy > src<->dst ")
 	remoteConn.SetReadDeadline(time.Now().Add(2 * time.Second)) // Add deadline to ensure it doesn't block forever
 	var nwL, nwR int64
-	err = Transport(localConnWrap, remoteConn, &nwL, &nwR)
-	if err != nil {
-		log.Printf("Encountered error while Transport %s", err)
-	}
+	Transport(localConnWrap, remoteConn, &nwL, &nwR)
+	log.Printf("[udp] Finish: %s -> %s", srcAddr, dstAddr)
 
 	T.CollectStats(dstAddr.IP.String(), sn, nwL, nwR+tx0)
-	
-	T_ := T.GetTable()
-	for k, v := range T_ {
-		_, _ = k, v
-		log.Printf("> %v %v", k, v)
-	}
 }

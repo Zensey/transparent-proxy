@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net"
+	"net/http"
 	"runtime/debug"
 
 	"github.com/LiamHaworth/go-tproxy"
@@ -11,9 +13,21 @@ import (
 	"github.com/zensey/transparent-proxy/udp"
 )
 
+type handler struct {
+	T *logic.TrafficCounter
+}
+
+func (h *handler) handlerByIP(w http.ResponseWriter, req *http.Request) {
+	json.NewEncoder(w).Encode(h.T.GetTableIP())
+}
+func (h *handler) handlerBySN(w http.ResponseWriter, req *http.Request) {
+	json.NewEncoder(w).Encode(h.T.GetTableSN())
+}
+
 func main() {
 	debug.SetTraceback("crash")
 	T := logic.NewtrafficCounter()
+	h := &handler{T: T}
 
 	log.Println("Binding TCP TProxy listener to 0.0.0.0:8585")
 	listener, err := tproxy.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 8585})
@@ -32,6 +46,10 @@ func main() {
 	}
 	defer udpListener.Close()
 	go udp.HandleAccept(udpListener, T)
+
+	http.HandleFunc("/stat/ip", h.handlerByIP)
+	http.HandleFunc("/stat/sn", h.handlerBySN)
+	http.ListenAndServe(":8080", nil)
 
 	select {}
 }
