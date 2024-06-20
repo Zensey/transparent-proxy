@@ -16,6 +16,5 @@ func ReadUntilEof(r io.Reader) error {
 			}
 			return err
 		}
-
 	}
 }

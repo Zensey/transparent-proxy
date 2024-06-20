@@ -1,4 +1,4 @@
-package dissector
+package tcp
 
 import (
 	"encoding/binary"
