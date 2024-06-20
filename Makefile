@@ -20,12 +20,12 @@ firewall:
 	iptables -t mangle -A PROXY -p tcp -m mark --mark 100 -j RETURN
 	iptables -t mangle -A PROXY -p tcp -j TPROXY --tproxy-mark 0x1/0x1 --on-ip 127.0.0.1 --on-port 8585
 	iptables -t mangle -A PREROUTING -p tcp -j PROXY
-    iptables -t mangle -A PROXY -p udp -d 127.0.0.0/8 -j RETURN
-    iptables -t mangle -A PROXY -p udp -d 255.255.255.255/32 -j RETURN
-    iptables -t mangle -A PROXY -p udp -d 192.168.0.0/16 -j RETURN
-    iptables -t mangle -A PROXY -p udp -m mark --mark 100 -j RETURN
-    iptables -t mangle -A PROXY -p udp -j TPROXY --tproxy-mark 0x1/0x1 --on-ip 127.0.0.1 --on-port 8585
-    iptables -t mangle -A PREROUTING -p udp --dport 8443 -j PROXY
+	iptables -t mangle -A PROXY -p udp -d 127.0.0.0/8 -j RETURN
+	iptables -t mangle -A PROXY -p udp -d 255.255.255.255/32 -j RETURN
+	iptables -t mangle -A PROXY -p udp -d 192.168.0.0/16 -j RETURN
+	iptables -t mangle -A PROXY -p udp -m mark --mark 100 -j RETURN
+	iptables -t mangle -A PROXY -p udp -j TPROXY --tproxy-mark 0x1/0x1 --on-ip 127.0.0.1 --on-port 8585
+	iptables -t mangle -A PREROUTING -p udp --dport 8443 -j PROXY
 
 	iptables -t mangle -N PROXY_LOCAL
 	iptables -t mangle -A PROXY_LOCAL -p tcp -d 127.0.0.0/8 -j RETURN
@@ -34,20 +34,20 @@ firewall:
 	iptables -t mangle -A PROXY_LOCAL -p tcp -m mark --mark 100 -j RETURN
 	iptables -t mangle -A PROXY_LOCAL -p tcp -j MARK --set-mark 1
 	iptables -t mangle -A OUTPUT -p tcp -m multiport --dports 80,8443 -j PROXY_LOCAL
-    iptables -t mangle -A PROXY_LOCAL -p udp -d 127.0.0.0/8 -j RETURN
-    iptables -t mangle -A PROXY_LOCAL -p udp -d 255.255.255.255/32 -j RETURN
-    iptables -t mangle -A PROXY_LOCAL -p udp -d 192.168.0.0/16 -j RETURN
-    iptables -t mangle -A PROXY_LOCAL -p udp -m mark --mark 100 -j RETURN
-    iptables -t mangle -A PROXY_LOCAL -p udp -j MARK --set-mark 1
-    iptables -t mangle -A OUTPUT -p udp -m multiport --dports 8443 -j PROXY_LOCAL
+	iptables -t mangle -A PROXY_LOCAL -p udp -d 127.0.0.0/8 -j RETURN
+	iptables -t mangle -A PROXY_LOCAL -p udp -d 255.255.255.255/32 -j RETURN
+	iptables -t mangle -A PROXY_LOCAL -p udp -d 192.168.0.0/16 -j RETURN
+	iptables -t mangle -A PROXY_LOCAL -p udp -m mark --mark 100 -j RETURN
+	iptables -t mangle -A PROXY_LOCAL -p udp -j MARK --set-mark 1
+	iptables -t mangle -A OUTPUT -p udp -m multiport --dports 8443 -j PROXY_LOCAL
 
 firewall-clean:
-    iptables -t mangle -D OUTPUT -p udp -m multiport --dports 8443 -j PROXY_LOCAL
+	iptables -t mangle -D OUTPUT -p udp -m multiport --dports 8443 -j PROXY_LOCAL
 	iptables -t mangle -D OUTPUT -p tcp -m multiport --dports 80,8443 -j PROXY_LOCAL
 	iptables -t mangle -F PROXY_LOCAL
 	iptables -t mangle -X PROXY_LOCAL
 
-    iptables -t mangle -D PREROUTING -p udp --dport 8443 -j PROXY
+	iptables -t mangle -D PREROUTING -p udp --dport 8443 -j PROXY
 	iptables -t mangle -D PREROUTING -p tcp -j PROXY
 	iptables -t mangle -F PROXY
 	iptables -t mangle -X PROXY
