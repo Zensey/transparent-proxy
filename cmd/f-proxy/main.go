@@ -18,10 +18,10 @@ type handler struct {
 }
 
 func (h *handler) handlerByIP(w http.ResponseWriter, req *http.Request) {
-	json.NewEncoder(w).Encode(h.T.GetTableIP())
+	json.NewEncoder(w).Encode(h.T.GetStatsByIP())
 }
 func (h *handler) handlerBySN(w http.ResponseWriter, req *http.Request) {
-	json.NewEncoder(w).Encode(h.T.GetTableSN())
+	json.NewEncoder(w).Encode(h.T.GetStatsBySN())
 }
 
 func main() {

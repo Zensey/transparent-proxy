@@ -5,31 +5,31 @@ import (
 	"sync"
 )
 
-type trackerRec struct {
+type trafficRec struct {
 	Rx int64 `json:"rx"`
 	Tx int64 `json:"tx"`
 }
 
 type TrafficCounter struct {
 	mu   sync.Mutex
-	byIP map[string]trackerRec
-	bySN map[string]trackerRec
+	byIP map[string]trafficRec
+	bySN map[string]trafficRec
 }
 
 func NewtrafficCounter() *TrafficCounter {
 	return &TrafficCounter{
-		byIP: make(map[string]trackerRec, 0),
-		bySN: make(map[string]trackerRec, 0),
+		byIP: make(map[string]trafficRec, 0),
+		bySN: make(map[string]trafficRec, 0),
 	}
 }
 
-func (t *TrafficCounter) GetTableIP() map[string]trackerRec {
+func (t *TrafficCounter) GetStatsByIP() map[string]trafficRec {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	return maps.Clone(t.byIP)
 }
-func (t *TrafficCounter) GetTableSN() map[string]trackerRec {
+func (t *TrafficCounter) GetStatsBySN() map[string]trafficRec {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -42,7 +42,7 @@ func (t *TrafficCounter) CollectStats(ip, sn string, rx, tx int64) {
 
 	r, ok := t.byIP[ip]
 	if !ok {
-		r = trackerRec{}
+		r = trafficRec{}
 	}
 	r.Tx += tx
 	r.Rx += rx
@@ -51,7 +51,7 @@ func (t *TrafficCounter) CollectStats(ip, sn string, rx, tx int64) {
 	if sn != "" {
 		r2, ok := t.bySN[sn]
 		if !ok {
-			r2 = trackerRec{}
+			r2 = trafficRec{}
 		}
 		r2.Tx += tx
 		r2.Rx += rx

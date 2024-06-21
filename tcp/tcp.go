@@ -10,7 +10,7 @@ import (
 	"github.com/zensey/transparent-proxy/stats"
 )
 
-func HandleAccept(listener net.Listener, T *stats.TrafficCounter) {
+func HandleAccept(listener net.Listener, t *stats.TrafficCounter) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -18,11 +18,11 @@ func HandleAccept(listener net.Listener, T *stats.TrafficCounter) {
 			continue
 		}
 
-		go handle(conn, T)
+		go handle(conn, t)
 	}
 }
 
-func handle(conn net.Conn, T *stats.TrafficCounter) {
+func handle(conn net.Conn, t *stats.TrafficCounter) {
 	log.Printf("[tcp] Handle: %s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
 	defer conn.Close()
 
@@ -77,5 +77,5 @@ func handle(conn net.Conn, T *stats.TrafficCounter) {
 	streamWait.Wait()
 
 	log.Printf("[tcp] Finish: %s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
-	T.CollectStats(ip, serverName, rx, tx)
+	t.CollectStats(ip, serverName, rx, tx)
 }

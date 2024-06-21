@@ -19,7 +19,7 @@ const (
 	defaultReadBufferSize = 4096
 )
 
-func HandleAccept(udpListener *net.UDPConn, T *stats.TrafficCounter) {
+func HandleAccept(udpListener *net.UDPConn, t *stats.TrafficCounter) {
 	for {
 		buff := make([]byte, defaultReadBufferSize)
 		n, srcAddr, dstAddr, err := tproxy.ReadFromUDP(udpListener, buff)
@@ -32,8 +32,7 @@ func HandleAccept(udpListener *net.UDPConn, T *stats.TrafficCounter) {
 			return
 		}
 
-		// log.Printf("Accepting UDP connection from %s with destination of %s", srcAddr.String(), dstAddr.String())
-		go handle(buff[:n], srcAddr, dstAddr, T)
+		go handle(buff[:n], srcAddr, dstAddr, t)
 	}
 }
 
@@ -46,24 +45,21 @@ func extractSN(data []byte) string {
 		log.Println("ReadFrom err:", err)
 		return ""
 	}
-	// log.Println("clientHello >")
+
 	for _, ext := range clientHello.Extensions {
 		if ext.Type() == dissector.ExtServerName {
 			snExtension := ext.(*dissector.ServerNameExtension)
-			// log.Println("SN >", snExtension.Name)
 			return snExtension.Name
 		}
 	}
 	return ""
 }
 
-// handle will open a connection
-// to the original destination pretending
-// to be the client. It will when right
-// the received data to the remote host
-// and wait a few seconds for any possible
-// response data
-func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, T *stats.TrafficCounter) {
+// handle establishes a bidirectional connection
+// to the original destination pretending to be
+// the client. 
+// If no interaction within a few seconds, then connection is closed
+func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, t *stats.TrafficCounter) {
 	log.Printf("[udp] Handle: %s -> %s", srcAddr, dstAddr)
 
 	tx0 := int64(len(data))
@@ -112,10 +108,9 @@ func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, T *stats.TrafficCounter)
 		ttl:  defaultTTL,
 	}
 
-	// log.Println("Copy > src<->dst ")
 	var nwL, nwR int64
 	Transport(localConnWrap, remoteConnWrap, &nwL, &nwR)
 	log.Printf("[udp] Finish: %s -> %s", srcAddr, dstAddr)
 
-	T.CollectStats(dstAddr.IP.String(), sn, nwL, nwR+tx0)
+	t.CollectStats(dstAddr.IP.String(), sn, nwL, nwR+tx0)
 }
