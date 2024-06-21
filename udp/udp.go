@@ -9,17 +9,17 @@ import (
 
 	"github.com/LiamHaworth/go-tproxy"
 	dissector "github.com/go-gost/tls-dissector"
-
 	"github.com/quic-go/quic-go"
-	"github.com/zensey/transparent-proxy/logic"
+
+	"github.com/zensey/transparent-proxy/stats"
 )
 
 const (
-	defaultTTL            = 30 * time.Second
+	defaultTTL            = 10 * time.Second
 	defaultReadBufferSize = 4096
 )
 
-func HandleAccept(udpListener *net.UDPConn, T *logic.TrafficCounter) {
+func HandleAccept(udpListener *net.UDPConn, T *stats.TrafficCounter) {
 	for {
 		buff := make([]byte, defaultReadBufferSize)
 		n, srcAddr, dstAddr, err := tproxy.ReadFromUDP(udpListener, buff)
@@ -63,7 +63,7 @@ func extractSN(data []byte) string {
 // the received data to the remote host
 // and wait a few seconds for any possible
 // response data
-func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, T *logic.TrafficCounter) {
+func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, T *stats.TrafficCounter) {
 	log.Printf("[udp] Handle: %s -> %s", srcAddr, dstAddr)
 
 	tx0 := int64(len(data))
@@ -101,17 +101,20 @@ func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, T *logic.TrafficCounter)
 		return
 	}
 	defer remoteConn.Close()
+	remoteConnWrap := &redirConnDeadline{
+		Conn: remoteConn,
+		ttl:  defaultTTL,
+	}
 
 	localConnWrap := &redirConn{
 		Conn: localConn,
 		buf:  data,
-		ttl:  time.Second * 2,
+		ttl:  defaultTTL,
 	}
 
 	// log.Println("Copy > src<->dst ")
-	remoteConn.SetReadDeadline(time.Now().Add(2 * time.Second)) // Add deadline to ensure it doesn't block forever
 	var nwL, nwR int64
-	Transport(localConnWrap, remoteConn, &nwL, &nwR)
+	Transport(localConnWrap, remoteConnWrap, &nwL, &nwR)
 	log.Printf("[udp] Finish: %s -> %s", srcAddr, dstAddr)
 
 	T.CollectStats(dstAddr.IP.String(), sn, nwL, nwR+tx0)

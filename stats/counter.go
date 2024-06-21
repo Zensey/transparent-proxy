@@ -1,4 +1,4 @@
-package logic
+package stats
 
 import (
 	"maps"
@@ -8,7 +8,6 @@ import (
 type trackerRec struct {
 	Rx int64
 	Tx int64
-	// Sn string
 }
 
 type TrafficCounter struct {

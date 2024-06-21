@@ -7,10 +7,10 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/zensey/transparent-proxy/logic"
+	"github.com/zensey/transparent-proxy/stats"
 )
 
-func HandleAccept(listener net.Listener, T *logic.TrafficCounter) {
+func HandleAccept(listener net.Listener, T *stats.TrafficCounter) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -22,7 +22,7 @@ func HandleAccept(listener net.Listener, T *logic.TrafficCounter) {
 	}
 }
 
-func handle(conn net.Conn, T *logic.TrafficCounter) {
+func handle(conn net.Conn, T *stats.TrafficCounter) {
 	log.Printf("[tcp] Handle: %s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
 	defer conn.Close()
 

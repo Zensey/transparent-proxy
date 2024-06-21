@@ -8,13 +8,13 @@ import (
 	"runtime/debug"
 
 	"github.com/LiamHaworth/go-tproxy"
-	"github.com/zensey/transparent-proxy/logic"
+	"github.com/zensey/transparent-proxy/stats"
 	"github.com/zensey/transparent-proxy/tcp"
 	"github.com/zensey/transparent-proxy/udp"
 )
 
 type handler struct {
-	T *logic.TrafficCounter
+	T *stats.TrafficCounter
 }
 
 func (h *handler) handlerByIP(w http.ResponseWriter, req *http.Request) {
@@ -26,7 +26,7 @@ func (h *handler) handlerBySN(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 	debug.SetTraceback("crash")
-	T := logic.NewtrafficCounter()
+	T := stats.NewtrafficCounter()
 	h := &handler{T: T}
 
 	log.Println("Binding TCP TProxy listener to 0.0.0.0:8585")
