@@ -6,8 +6,8 @@ import (
 )
 
 type trackerRec struct {
-	Rx int64
-	Tx int64
+	Rx int64 `json:"rx"`
+	Tx int64 `json:"tx"`
 }
 
 type TrafficCounter struct {
