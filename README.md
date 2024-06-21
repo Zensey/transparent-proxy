@@ -1,5 +1,5 @@
 # f-proxy
-transparent frwarding proxy for TCP/UDP/QUIC
+transparent forwarding proxy for TCP/UDP/QUIC
 
 # setup firewall example
 ```
