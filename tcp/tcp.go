@@ -7,6 +7,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/zensey/transparent-proxy/metrics"
 	"github.com/zensey/transparent-proxy/stats"
 )
 
@@ -78,4 +79,6 @@ func handle(conn net.Conn, t *stats.TrafficCounter) {
 
 	log.Printf("[tcp] Finish: %s -> %s", conn.RemoteAddr().String(), conn.LocalAddr().String())
 	t.CollectStats(ip, serverName, rx, tx)
+
+	metrics.ReportMetrics(ip, serverName, t)
 }

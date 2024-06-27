@@ -11,6 +11,7 @@ import (
 	dissector "github.com/go-gost/tls-dissector"
 	"github.com/quic-go/quic-go"
 
+	"github.com/zensey/transparent-proxy/metrics"
 	"github.com/zensey/transparent-proxy/stats"
 )
 
@@ -57,16 +58,16 @@ func extractSN(data []byte) string {
 
 // handle establishes a bidirectional connection
 // to the original destination pretending to be
-// the client. 
+// the client.
 // If no interaction within a few seconds, then connection is closed
 func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, t *stats.TrafficCounter) {
 	log.Printf("[udp] Handle: %s -> %s", srcAddr, dstAddr)
 
 	tx0 := int64(len(data))
-	var sn string
+	var serverName string
 	crypto := quic.ExractCryptoFrame(data)
 	if crypto != nil {
-		sn = extractSN(crypto)
+		serverName = extractSN(crypto)
 	}
 
 	// to local
@@ -109,8 +110,11 @@ func handle(data []byte, srcAddr, dstAddr *net.UDPAddr, t *stats.TrafficCounter)
 	}
 
 	var nwL, nwR int64
-	Transport(localConnWrap, remoteConnWrap, &nwL, &nwR)
+	transport(localConnWrap, remoteConnWrap, &nwL, &nwR)
 	log.Printf("[udp] Finish: %s -> %s", srcAddr, dstAddr)
 
-	t.CollectStats(dstAddr.IP.String(), sn, nwL, nwR+tx0)
+	ip := dstAddr.IP.String()
+	t.CollectStats(ip, serverName, nwL, nwR+tx0)
+
+	metrics.ReportMetrics(ip, serverName, t)
 }

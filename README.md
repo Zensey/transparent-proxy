@@ -3,8 +3,15 @@ transparent forwarding proxy for TCP/UDP/QUIC
 
 # setup firewall example
 ```
-./setup_firewall.sh up
+./deploy/setup_firewall.sh up
 ```
+
+# running VictoriaMetrics
+```
+docker run -it --rm -v ./deploy/victoria-config.yaml:/etc/config.yaml --network="host"  victoriametrics/victoria-metrics -promscrape.config=/etc/config.yaml
+```
+* open http://localhost:8428/vmui/
+* add queries: Rx{}, Tx{}
 
 # api
 ```

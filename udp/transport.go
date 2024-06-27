@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"net"
+	"sync"
 
 	"github.com/go-gost/core/common/bufpool"
 )
@@ -12,25 +13,26 @@ const (
 	bufferSize = 4 * 1024
 )
 
-func Transport(rw1, rw2 io.ReadWriter, nw1, nw2 *int64) error {
+func transport(rw1, rw2 io.ReadWriter, nw1, nw2 *int64) error {
 
-	errc := make(chan error, 1)
+	var streamWait sync.WaitGroup
+	streamWait.Add(2)
+
 	go func() {
-		n, err := CopyBuffer(rw1, rw2, bufferSize)
+		defer streamWait.Done()
+
+		n, _ := CopyBuffer(rw1, rw2, bufferSize)
 		*nw1 = n
-		errc <- err
 	}()
 
 	go func() {
-		n, err := CopyBuffer(rw2, rw1, bufferSize)
+		defer streamWait.Done()
+
+		n, _ := CopyBuffer(rw2, rw1, bufferSize)
 		*nw2 = n
-		errc <- err
 	}()
 
-	if err := <-errc; err != nil && err != io.EOF {
-		return err
-	}
-
+	streamWait.Wait()
 	return nil
 }
 

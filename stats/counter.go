@@ -35,6 +35,18 @@ func (t *TrafficCounter) GetStatsBySN() map[string]trafficRec {
 
 	return maps.Clone(t.bySN)
 }
+func (t *TrafficCounter) GetStatsRecordByIP(ip string) trafficRec {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	m := t.byIP
+	return m[ip]
+}
+func (t *TrafficCounter) GetStatsRecordBySN(sn string) trafficRec {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	m := t.bySN
+	return m[sn]
+}
 
 func (t *TrafficCounter) CollectStats(ip, sn string, rx, tx int64) {
 	t.mu.Lock()

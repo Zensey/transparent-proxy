@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 
 	"github.com/LiamHaworth/go-tproxy"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/zensey/transparent-proxy/stats"
 	"github.com/zensey/transparent-proxy/tcp"
 	"github.com/zensey/transparent-proxy/udp"
@@ -20,8 +21,13 @@ type handler struct {
 func (h *handler) handlerByIP(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(h.T.GetStatsByIP())
 }
+
 func (h *handler) handlerBySN(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(h.T.GetStatsBySN())
+}
+
+func metricsPage(w http.ResponseWriter, r *http.Request) {
+	metrics.WritePrometheus(w, true)
 }
 
 func main() {
@@ -49,6 +55,7 @@ func main() {
 
 	http.HandleFunc("/stat/ip", h.handlerByIP)
 	http.HandleFunc("/stat/sn", h.handlerBySN)
+	http.HandleFunc("/metrics", metricsPage)
 	http.ListenAndServe(":8080", nil)
 
 	select {}
